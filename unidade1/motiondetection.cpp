@@ -33,7 +33,7 @@ int main(int argc, char** argv){
   int histw = nbins, histh = nbins/2;
   Mat histImgR(histh, histw, CV_8UC1, Scalar(0)); // modificado para criar um histograma em greyscale
 
-  // faz uma vez para poder, calcular o primeiro dot product, dar continuidade dentro do loop
+  // // faz uma vez para poder, calcular a primeira correlação, dar continuidade dentro do loop
   cap >> image;
   cvtColor(image, grey_image, cv::COLOR_BGR2GRAY);
   calcHist(&grey_image, 1, 0, Mat(), histR, 1,
@@ -54,11 +54,17 @@ int main(int argc, char** argv){
 
     normalize(histR, histR, 0, histImgR.rows, NORM_MINMAX, -1, Mat());
 
-    for(int i = 0; i< histR.rows; i++){
-      for(int j = 0; j<histR.cols; j++){
-        cout << +histR.at<uchar>(i,j) << endl;
-      }
+    float sum = 0, sqrtold = 0, sqrtnew = 0;
+
+    double d = compareHist(histR,old_hist,CV_COMP_CORREL);
+    cout << d << endl;
+
+    if ( d < 0.99)
+    {
+      cout << "Moviemnto detectado";
     }
+
+    histR.copyTo(old_hist);
 
     histImgR.setTo(Scalar(0));
     
