@@ -65,7 +65,7 @@ cv::Mat create_homomorfic_filter(cv::Size paddedSize, double gl, double gh, doub
   }
 
   // cria a matriz com as componentes do filtro e junta
-  // ambas em uma matriz multicanal complexa
+  // ambas em uma matriz multicanal complexa  
   Mat comps[]= {tmp, tmp};
   merge(comps, 2, filter);
   return filter;
@@ -76,8 +76,10 @@ void on_trackbar_move(int, void*){
   // imagem complexa
   planos.clear();
 
-  // cria a compoente real
+  // cria a compoente real e imaginaria (zeros)
   realInput = Mat_<float>(padded);
+  realInput += Scalar::all(1);
+  log(realInput,realInput);
 
   // insere as duas componentes no array de matrizes
   planos.push_back(realInput);
@@ -85,66 +87,57 @@ void on_trackbar_move(int, void*){
 
   // combina o array de matrizes em uma unica
   // componente complexa
+  // prepara a matriz complexa para ser preenchida
+  complexImage = Mat(padded.size(), CV_32FC2, Scalar(0));
   merge(planos, complexImage);
 
-  // // calcula o dft
-  // dft(complexImage, complexImage);
+  // calcula o dft
+  dft(complexImage, complexImage);
 
-  // // realiza a troca de quadrantes
-  // deslocaDFT(complexImage);
+  // realiza a troca de quadrantes
+  deslocaDFT(complexImage);
+  resize(complexImage,complexImage,padded.size());
+  normalize(complexImage,complexImage,0,1,CV_MINMAX);
 
-  // // aplica o filtro frequencial
-  // Mat filter = create_homomorfic_filter(padded.size(),gl_slider,gh_slider,c_slider,d0_slider);
-  // mulSpectrums(complexImage,filter,complexImage,0);
+  // aplica o filtro frequencial
+  Mat filter = create_homomorfic_filter(padded.size(),gl_slider,gh_slider,c_slider,d0_slider);
+  mulSpectrums(complexImage,filter,complexImage,0);
 
-  // // troca novamente os quadrantes
-  // deslocaDFT(complexImage);
+  // troca novamente os quadrantes
+  deslocaDFT(complexImage);
 
-  // // calcula a DFT inversa
-  // idft(complexImage, complexImage);
+  // calcula a DFT inversa
+  idft(complexImage, complexImage);
 
-  // // limpa o array de planos
-  // planos.clear();
+  // limpa o array de planos
+  planos.clear();
 
-  // // separa as partes real e imaginaria da
-  // // imagem filtrada
-  // split(complexImage, planos);
+  // separa as partes real e imaginaria da
+  // imagem filtrada
+  split(complexImage, planos);
 
   // // normaliza a parte real para exibicao
-  // normalize(planos[0], planos[0], 0, 1, CV_MINMAX);
-  // imshow("Homomorphic Filter", planos[0]);
+  normalize(planos[0], planos[0], 0, 1, CV_MINMAX);
+  imshow("Homomorphic Filter", planos[0]);
 }
 
 int main(int argc, char** argv){
 
-  Mat imageOriginal = imread(argv[1],CV_LOAD_IMAGE_GRAYSCALE);
+  imageOriginal = imread(argv[1],CV_LOAD_IMAGE_GRAYSCALE);
   imshow("Original", imageOriginal);
 
   // identifica os tamanhos otimos para
   // calculo do FFT
-  int dft_M = getOptimalDFTSize(imageOriginal.rows);
-  int dft_N = getOptimalDFTSize(imageOriginal.cols);
+  dft_M = getOptimalDFTSize(imageOriginal.rows);
+  dft_N = getOptimalDFTSize(imageOriginal.cols);
 
   // realiza o padding da imagem
-  Mat padded;
   copyMakeBorder(imageOriginal, padded, 0,
                  dft_M - imageOriginal.rows, 0,
                  dft_N - imageOriginal.cols,
                  BORDER_CONSTANT, Scalar::all(0));
 
-  // parte imaginaria da matriz complexa (preenchida com zeros)
   zeros = Mat_<float>::zeros(padded.size());
-
-  // prepara a matriz complexa para ser preenchida
-  complexImage = Mat(padded.size(), CV_32FC2, Scalar(0));
-
-  // a função de transferência (filtro frequencial) deve ter o
-  // mesmo tamanho e tipo da matriz complexa
-  filter = complexImage.clone();
-
-  // cria uma matriz temporária para criar as componentes real
-  // e imaginaria do filtro ideal
-  tmp = Mat(dft_M, dft_N, CV_32F);
 
   char TrackbarName[50];
 
@@ -162,7 +155,7 @@ int main(int argc, char** argv){
   sprintf( TrackbarName, "Cutoff Frequency x %d", d0_slider_max );
   createTrackbar( TrackbarName, "Homomorphic Filter", &d0_slider, d0_slider_max, on_trackbar_move);
 
-  on_trackbar_move(100, NULL);
+  on_trackbar_move(0, NULL);
 
   waitKey(0);
   return 0;
