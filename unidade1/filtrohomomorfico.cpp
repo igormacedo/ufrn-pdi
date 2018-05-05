@@ -7,8 +7,29 @@
 using namespace cv;
 using namespace std;
 
+int gl_slider = 2;
+int gl_slider_max = 10;
+
+int gh_slider = 20;
+int gh_slider_max = 50;
+
+int c_slider = 50;
+int c_slider_max = 100;
+
+int d0_slider = 5;
+int d0_slider_max = 200;
+
+Mat imageOriginal;
+Mat padded;
+Mat_<float> realInput, zeros;
+Mat complexImage;
+Mat filter, tmp;
+vector<Mat> planos;
+
+int dft_M, dft_N;
+
 // troca os quadrantes da imagem da DFT
-void deslocaDFT(Mat& image ){
+void deslocaDFT(Mat& image){
   Mat tmp, A, B, C, D;
 
   // se a imagem tiver tamanho impar, recorta a regiao para
@@ -32,49 +53,83 @@ void deslocaDFT(Mat& image ){
   C.copyTo(tmp);  B.copyTo(C);  tmp.copyTo(B);
 }
 
-int main(int , char**){
-  VideoCapture cap;   
-  Mat imaginaryInput, complexImage, multsp;
-  Mat padded, filter, mag;
-  Mat image, imagegray, tmp; 
-  Mat_<float> realInput, zeros;
-  vector<Mat> planos;
+cv::Mat create_homomorfic_filter(cv::Size paddedSize, double gl, double gh, double c, double d0){
+  Mat filter = Mat(paddedSize, CV_32FC2, Scalar(0));
+  Mat tmp = Mat(dft_M, dft_N, CV_32F);
 
-  // habilita/desabilita ruido
-  int noise=0;
-  // frequencia do ruido
-  int freq=10;
-  // ganho inicial do ruido
-  float gain=1;
+  for(int i=0; i < tmp.rows; i++){
+    for(int j=0; j < tmp.cols; j++){
+        float coef = (i-dft_M/2)*(i-dft_M/2)+(j-dft_N/2)*(j-dft_N/2);
+        tmp.at<float> (i,j) = (gh-gl)*(1.0 - (float)exp(-(c*coef/(d0*d0)))) + gl;
+    }
+  }
 
-  // valor do ruido
-  float mean;
+  // cria a matriz com as componentes do filtro e junta
+  // ambas em uma matriz multicanal complexa
+  Mat comps[]= {tmp, tmp};
+  merge(comps, 2, filter);
+  return filter;
+}
 
-  // guarda tecla capturada
-  char key;
+void on_trackbar_move(int, void*){
+  // limpa o array de matrizes que vao compor a
+  // imagem complexa
+  planos.clear();
 
-  // valores ideais dos tamanhos da imagem
-  // para calculo da DFT
-  int dft_M, dft_N;
+  // cria a compoente real
+  realInput = Mat_<float>(padded);
 
-  // abre a câmera default
-  cap.open(0);
-  if(!cap.isOpened())
-    return -1;
+  // insere as duas componentes no array de matrizes
+  planos.push_back(realInput);
+  planos.push_back(zeros);
 
-  // captura uma imagem para recuperar as
-  // informacoes de gravação
-  cap >> image;
+  // combina o array de matrizes em uma unica
+  // componente complexa
+  merge(planos, complexImage);
+
+  // // calcula o dft
+  // dft(complexImage, complexImage);
+
+  // // realiza a troca de quadrantes
+  // deslocaDFT(complexImage);
+
+  // // aplica o filtro frequencial
+  // Mat filter = create_homomorfic_filter(padded.size(),gl_slider,gh_slider,c_slider,d0_slider);
+  // mulSpectrums(complexImage,filter,complexImage,0);
+
+  // // troca novamente os quadrantes
+  // deslocaDFT(complexImage);
+
+  // // calcula a DFT inversa
+  // idft(complexImage, complexImage);
+
+  // // limpa o array de planos
+  // planos.clear();
+
+  // // separa as partes real e imaginaria da
+  // // imagem filtrada
+  // split(complexImage, planos);
+
+  // // normaliza a parte real para exibicao
+  // normalize(planos[0], planos[0], 0, 1, CV_MINMAX);
+  // imshow("Homomorphic Filter", planos[0]);
+}
+
+int main(int argc, char** argv){
+
+  Mat imageOriginal = imread(argv[1],CV_LOAD_IMAGE_GRAYSCALE);
+  imshow("Original", imageOriginal);
 
   // identifica os tamanhos otimos para
   // calculo do FFT
-  dft_M = getOptimalDFTSize(image.rows);
-  dft_N = getOptimalDFTSize(image.cols);
+  int dft_M = getOptimalDFTSize(imageOriginal.rows);
+  int dft_N = getOptimalDFTSize(imageOriginal.cols);
 
   // realiza o padding da imagem
-  copyMakeBorder(image, padded, 0,
-                 dft_M - image.rows, 0,
-                 dft_N - image.cols,
+  Mat padded;
+  copyMakeBorder(imageOriginal, padded, 0,
+                 dft_M - imageOriginal.rows, 0,
+                 dft_N - imageOriginal.cols,
                  BORDER_CONSTANT, Scalar::all(0));
 
   // parte imaginaria da matriz complexa (preenchida com zeros)
@@ -91,130 +146,24 @@ int main(int , char**){
   // e imaginaria do filtro ideal
   tmp = Mat(dft_M, dft_N, CV_32F);
 
-  // prepara o filtro passa-baixas ideal
-  for(int i=0; i<dft_M; i++){
-    for(int j=0; j<dft_N; j++){
-      if((i-dft_M/2)*(i-dft_M/2)+(j-dft_N/2)*(j-dft_N/2) < RADIUS*RADIUS){
-        tmp.at<float> (i,j) = 1.0;
-      }
-    }
-  }
+  char TrackbarName[50];
 
-  // cria a matriz com as componentes do filtro e junta
-  // ambas em uma matriz multicanal complexa
-  Mat comps[]= {tmp, tmp};
-  merge(comps, 2, filter);
+  namedWindow("Homomorphic Filter", WINDOW_NORMAL);
 
-  for(;;){
-    cap >> image;
-    cvtColor(image, imagegray, CV_BGR2GRAY);
-    imshow("original", imagegray);
+  sprintf( TrackbarName, "Gamma L x %d", gl_slider_max );
+  createTrackbar( TrackbarName, "Homomorphic Filter", &gl_slider, gl_slider_max, on_trackbar_move);
 
-    // realiza o padding da imagem
-    copyMakeBorder(imagegray, padded, 0,
-                   dft_M - image.rows, 0,
-                   dft_N - image.cols,
-                   BORDER_CONSTANT, Scalar::all(0));
+  sprintf( TrackbarName, "Gamma H x %d", gh_slider_max );
+  createTrackbar( TrackbarName, "Homomorphic Filter", &gh_slider, gh_slider_max, on_trackbar_move);
 
-    // limpa o array de matrizes que vao compor a
-    // imagem complexa
-    planos.clear();
-    // cria a compoente real
-    realInput = Mat_<float>(padded);
-    // insere as duas componentes no array de matrizes
-    planos.push_back(realInput);
-    planos.push_back(zeros);
+  sprintf( TrackbarName, "C x %d", c_slider_max);
+  createTrackbar( TrackbarName, "Homomorphic Filter", &c_slider, c_slider_max, on_trackbar_move);
 
-    // combina o array de matrizes em uma unica
-    // componente complexa
-    merge(planos, complexImage);
+  sprintf( TrackbarName, "Cutoff Frequency x %d", d0_slider_max );
+  createTrackbar( TrackbarName, "Homomorphic Filter", &d0_slider, d0_slider_max, on_trackbar_move);
 
-    // calcula o dft
-    dft(complexImage, complexImage);
+  on_trackbar_move(100, NULL);
 
-    // realiza a troca de quadrantes
-    deslocaDFT(complexImage);
-
-    // aplica o filtro frequencial
-    mulSpectrums(complexImage,filter,complexImage,0);
-
-    // limpa o array de planos
-    planos.clear();
-    // separa as partes real e imaginaria para modifica-las
-    split(complexImage, planos);
- 
-    // usa o valor medio do espectro para dosar o ruido 
-    mean = abs(planos[0].at<float> (dft_M/2,dft_N/2));
-
-    // insere ruido coerente, se habilitado
-    if(noise){
-      // F(u,v) recebe ganho proporcional a F(0,0)
-      planos[0].at<float>(dft_M/2 +freq, dft_N/2 +freq) +=
-        gain*mean;
-   
-      planos[1].at<float>(dft_M/2 +freq, dft_N/2 +freq) +=
-        gain*mean;
-   
-      // F*(-u,-v) = F(u,v)
-      planos[0].at<float>(dft_M/2 -freq, dft_N/2 -freq) =
-        planos[0].at<float>(dft_M/2 +freq, dft_N/2 +freq);
-   
-      planos[1].at<float>(dft_M/2 -freq, dft_N/2 -freq) =
-        -planos[1].at<float>(dft_M/2 +freq, dft_N/2 +freq);
-
-    }
-
-    // recompoe os planos em uma unica matriz complexa
-    merge(planos, complexImage);
-
-    // troca novamente os quadrantes
-    deslocaDFT(complexImage);
-
-	cout << complexImage.size().height << endl;
-    // calcula a DFT inversa
-    idft(complexImage, complexImage);
-
-    // limpa o array de planos
-    planos.clear();
-
-    // separa as partes real e imaginaria da
-    // imagem filtrada
-    split(complexImage, planos);
-
-    // normaliza a parte real para exibicao
-    normalize(planos[0], planos[0], 0, 1, CV_MINMAX);
-    imshow("filtrada", planos[0]);
- 
-    key = (char) waitKey(10);
-    if( key == 27 ) break; // esc pressed!
-    switch(key){
-      // aumenta a frequencia do ruido
-    case 'q':
-      freq=freq+1;
-      if(freq > dft_M/2-1)
-        freq = dft_M/2-1;
-      break;
-      // diminui a frequencia do ruido
-    case 'a':
-      freq=freq-1;
-      if(freq < 1)
-        freq = 1;
-      break;
-      // amplifica o ruido
-    case 'x':
-      gain += 0.1;
-      break;
-      // atenua o ruido
-    case 'z':
-      gain -= 0.1;
-      if(gain < 0)
-        gain=0;
-      break;
-      // insere/remove ruido
-    case 'e':
-      noise=!noise;
-      break;
-    } 
-  }
+  waitKey(0);
   return 0;
 }

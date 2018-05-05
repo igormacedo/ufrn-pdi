@@ -32,5 +32,6 @@
 *.app
 
 *.code-workspace
+*.vscode
 
 *build/
