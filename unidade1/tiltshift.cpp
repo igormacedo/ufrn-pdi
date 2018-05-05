@@ -94,6 +94,6 @@ int main(int argvc, char **argv)
 
     waitKey(0);
 
-    imwrite( "blended.png", blended );
+    imwrite( "media/blended.png", blended );
     return 0;
 }

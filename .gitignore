@@ -32,3 +32,5 @@
 *.app
 
 *.code-workspace
+
+*build/

@@ -17,7 +17,7 @@ int main(int argc, char** argv){
   int bx = atoi(argv[3]);
   int by = atoi(argv[4]);
 
-  image = imread("biel.png",CV_LOAD_IMAGE_GRAYSCALE);
+  image = imread("media/biel.png",CV_LOAD_IMAGE_GRAYSCALE);
   if(!image.data)
     cout << "nao abriu biel.png" << endl;
 

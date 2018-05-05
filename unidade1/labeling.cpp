@@ -35,7 +35,7 @@ int main(int argc, char** argv){
 	}
 	}
 	imshow("image", image);
-	imwrite("labeling.png", image);
+	imwrite("media/labeling.png", image);
 	waitKey();
 	return 0;
 }

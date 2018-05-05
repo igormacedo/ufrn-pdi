@@ -101,8 +101,8 @@ int main(int argc, char** argv){
     }
   }
 
-  imwrite("labelingHolesRegions.png", imgregions);
-  imwrite("labelingHolesDetected.png", imgholes);
+  imwrite("media/labelingHolesRegions.png", imgregions);
+  imwrite("media/labelingHolesDetected.png", imgholes);
   waitKey();
   return 0;
 }

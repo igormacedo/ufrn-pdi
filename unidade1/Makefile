@@ -5,9 +5,9 @@ CC = gcc
 GCC = g++
 
 .c:
-	$(CC) -I$(INCDIR) $(CFLAGS) $< $(GL_LIBS) -o $@
+	$(CC) -I$(INCDIR) $(CFLAGS) $< $(GL_LIBS) -o build/$@
 
 .cpp:
-	$(GCC) -Wall -Wunused -std=c++11 -O2 `pkg-config --cflags opencv` $< -o $@ `pkg-config --libs opencv`
+	$(GCC) -Wall -Wunused -std=c++11 -O2 `pkg-config --cflags opencv` $< -o build/$@ `pkg-config --libs opencv`
 
 

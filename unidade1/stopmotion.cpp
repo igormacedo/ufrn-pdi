@@ -28,7 +28,7 @@ int main(int argvc, char **argv)
         exit(1);
     }
 
-    VideoWriter out ("stopmotion.avi", CV_FOURCC('D','I','V','X'), 
+    VideoWriter out ("media/stopmotion.avi", CV_FOURCC('D','I','V','X'), 
                      cap.get(CV_CAP_PROP_FPS)/5,
                      Size(cap.get(CV_CAP_PROP_FRAME_WIDTH), 
                      cap.get(CV_CAP_PROP_FRAME_HEIGHT)));

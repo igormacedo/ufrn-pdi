@@ -33,8 +33,8 @@ void on_trackbar_line(int, void*){
 }
 
 int main(int argvc, char** argv){
-  image1 = imread("blend1.jpg");
-  image2 = imread("blend2.jpg");
+  image1 = imread("media/blend1.jpg");
+  image2 = imread("media/blend2.jpg");
   image2.copyTo(imageTop);
   namedWindow("addweighted", 1);
   

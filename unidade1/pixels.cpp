@@ -8,7 +8,7 @@ int main(int, char**){
   Mat image;
   Vec3b val;
 
-  image= imread("bolhas.png",CV_LOAD_IMAGE_GRAYSCALE);
+  image= imread("media/bolhas.png",CV_LOAD_IMAGE_GRAYSCALE);
   if(!image.data)
     cout << "nao abriu bolhas.png" << endl;
 
@@ -23,7 +23,7 @@ int main(int, char**){
   imshow("janela", image);  
   waitKey();
 
-  image= imread("bolhas.png",CV_LOAD_IMAGE_COLOR);
+  image= imread("media/bolhas.png",CV_LOAD_IMAGE_COLOR);
 
   val[0] = 0;   //B
   val[1] = 0;   //G

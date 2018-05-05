@@ -7,7 +7,7 @@ using namespace std;
 int main(int, char**){
   Mat image;
 
-  image= imread("biel.png",CV_LOAD_IMAGE_GRAYSCALE);
+  image= imread("media/biel.png",CV_LOAD_IMAGE_GRAYSCALE);
   if(!image.data)
     cout << "nao abriu bolhas.png" << endl;
 
